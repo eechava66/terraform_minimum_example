@@ -3,6 +3,14 @@ provider "aws" {
   shared_credentials_file = "${path.module}/credentials"
 }
 
+terraform {
+  backend "s3" {
+    bucket   = "devops-terraform-backend-avm-2"
+    key      = "ecsDemo/terraform.tfstate"
+    region   = "us-east-1"
+  }
+}
+
 //Cluster
 resource "aws_ecs_cluster" "cluster" {
   name               = "${var.env}-Cluster"
@@ -10,13 +18,13 @@ resource "aws_ecs_cluster" "cluster" {
   default_capacity_provider_strategy {
     capacity_provider = "FARGATE"
     weight            = 40
-    base              = 1
+    base              = 0
   }
 
   default_capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
     weight            = 60
-    base              = 0
+    base              = 1
   }
 
   tags = {
@@ -32,12 +40,18 @@ resource "aws_ecs_task_definition" "service" {
   container_definitions = jsonencode([
     {
       name      = "service-${var.env}"
-      image     = "nginxdemos/hello:latest"
+      image     = "public.ecr.aws/t0r2k2r7/demo"
       essential = true
+      environment = [
+        {"name": "MYSQL_HOST", "value": aws_db_instance.default.endpoint},
+        {"name": "MYSQL_USER", "value": aws_db_instance.default.username},
+        {"name": "MYSQL_PASSWORD", "value": aws_db_instance.default.password},
+        {"name": "MYSQL_DB", "value": aws_db_instance.default.name}
+      ]
       portMappings = [
         {
-          containerPort = 80
-          hostPort      = 80
+          containerPort = 3000
+          hostPort      = 3000
         }
       ]
     }
@@ -115,7 +129,7 @@ resource "aws_ecs_service" "service" {
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.arn
     container_name   = "service-${var.env}"
-    container_port   = 80
+    container_port   = 3000
   }
     tags = {
     env = "${var.env}"
@@ -124,4 +138,8 @@ resource "aws_ecs_service" "service" {
   depends_on = [
     aws_lb_listener.listener,
   ]
+}
+
+output "alb_dns" {
+  value = aws_lb.load_balancer.dns_name
 }
