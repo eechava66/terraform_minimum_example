@@ -5,5 +5,6 @@ variable "region" {
 
 variable "env" {
   description = "environment"
-  default     = "dev"
+  default     = "prod"
 }
+

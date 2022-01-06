@@ -43,7 +43,7 @@ resource "aws_ecs_task_definition" "service" {
       image     = "public.ecr.aws/t0r2k2r7/demo"
       essential = true
       environment = [
-        {"name": "MYSQL_HOST", "value": aws_db_instance.default.endpoint},
+        {"name": "MYSQL_HOST", "value": aws_db_instance.default.address},
         {"name": "MYSQL_USER", "value": aws_db_instance.default.username},
         {"name": "MYSQL_PASSWORD", "value": aws_db_instance.default.password},
         {"name": "MYSQL_DB", "value": aws_db_instance.default.name}
@@ -67,7 +67,7 @@ resource "aws_ecs_task_definition" "service" {
 }
 
 resource "aws_lb" "load_balancer" {
-  name               = "loadbalance"
+  name               = "loadbalance-${var.env}"
   internal           = false
   load_balancer_type = "application"
   subnets = [ "subnet-cf1277a9", "subnet-4c05b316" ]
